@@ -235,7 +235,7 @@ body.mobile-preview-lock{overflow:hidden}
     </form>
     <details class="setup-box" id="supabaseSetup">
       <summary>ตั้งค่าการเชื่อมต่อ Supabase</summary>
-      <p>กรอก Project URL และ Publishable/anon key สำหรับเว็บนี้เท่านั้น ห้ามใช้ service_role key ในหน้าเว็บ</p>
+      <p>ระบบตั้งค่า Project URL และ Publishable key ไว้แล้ว สามารถเปลี่ยนได้จากส่วนนี้ ห้ามใช้ service_role key ในหน้าเว็บ</p>
       <div class="field w12"><label>Project URL</label><input id="setupUrl" placeholder="https://xxxx.supabase.co"></div>
       <div class="field w12"><label>Publishable / anon key</label><textarea id="setupKey" style="min-height:82px" placeholder="sb_publishable_... หรือ anon key"></textarea></div>
       <button class="btn" type="button" style="width:100%" onclick="saveSupabaseConfig()">บันทึกการเชื่อมต่อ</button>
@@ -503,8 +503,9 @@ function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));rende
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),1800)}
 
 const SUPABASE_CONFIG_KEY='naphaporn_supabase_config_v1';
+const DEFAULT_SUPABASE_CONFIG={url:'https://qvryytsqyjbaagjelwwq.supabase.co',key:'sb_publishable_m_JjnzQptcmaNiCVnGdPdA_vS7QL11P'};
 let supa=null,currentSession=null,cloudSyncTimer=null,isApplyingCloud=false;
-function getSupabaseConfig(){try{return JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY)||'{}')}catch(e){return{}}}
+function getSupabaseConfig(){try{const saved=JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY)||'{}');return{url:saved.url||DEFAULT_SUPABASE_CONFIG.url,key:saved.key||DEFAULT_SUPABASE_CONFIG.key}}catch(e){return{...DEFAULT_SUPABASE_CONFIG}}}
 function initSupabase(){const cfg=getSupabaseConfig();if($('setupUrl'))$('setupUrl').value=cfg.url||'';if($('setupKey'))$('setupKey').value=cfg.key||'';if(!cfg.url||!cfg.key||!window.supabase?.createClient){setAuthStatus('กรุณาตั้งค่า Project URL และ Publishable/anon key ก่อนเข้าสู่ระบบ','error');return false}try{supa=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});supa.auth.onAuthStateChange((event,session)=>{currentSession=session;applySessionUI(session);if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){if(session)loadCloudState()}if(event==='SIGNED_OUT'){currentSession=null;applySessionUI(null)}});supa.auth.getSession().then(({data})=>{currentSession=data?.session||null;applySessionUI(currentSession);if(currentSession)loadCloudState()});return true}catch(e){setAuthStatus('เชื่อมต่อ Supabase ไม่สำเร็จ: '+e.message,'error');return false}}
 function saveSupabaseConfig(){const url=$('setupUrl').value.trim(),key=$('setupKey').value.trim();if(!/^https:\/\/.+\.supabase\.co\/?$/.test(url))return setAuthStatus('Project URL ไม่ถูกต้อง','error');if(key.length<20)return setAuthStatus('Publishable/anon key ดูไม่ถูกต้อง','error');localStorage.setItem(SUPABASE_CONFIG_KEY,JSON.stringify({url:url.replace(/\/$/,''),key}));setAuthStatus('บันทึกแล้ว กำลังเชื่อมต่อใหม่…','ok');setTimeout(()=>location.reload(),500)}
 function setAuthStatus(msg,type=''){const el=$('authStatus');if(!el)return;el.textContent=msg;el.className='auth-status'+(type?' '+type:'')}
